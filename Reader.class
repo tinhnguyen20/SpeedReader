@@ -1,0 +1,72 @@
+import java.util.Scanner;
+import java.util.ArrayList;
+import java.util.Set;
+import java.util.HashSet;
+import java.util.Iterator;
+
+import java.io.File;
+import java.io.IOException;
+/**
+ * Reads in File
+ * Breaks up the String (file) into chunks
+ *  - Breaks up the file into sentences, and chunks it from there
+ * 
+ * 
+ */
+public class Reader
+{    
+    private String file;
+    private Scanner in;
+    private ArrayList<Sentence> sentences; 
+    private Set<String> prepositions;
+
+    /**
+     * Read in a textfile
+     * File -> String
+     */
+    public Reader()
+    {
+        // 1. read in file
+        file = "";
+        sentences = new ArrayList<Sentence>();
+        prepositions = new HashSet <String>();
+
+        try{
+            in = new Scanner(new File("TestStory.txt"));
+        }catch(IOException i){
+            System.out.println("Error: " + i.getMessage());
+        }
+        String text = "";
+        while(in.hasNextLine()){
+            text = in.nextLine();
+            file += (text + " ");
+            //System.out.println(text);
+        }
+
+        System.out.println(file);
+        createSentences();
+    }
+
+    
+
+    /**
+     * String (file) -> String
+     * divide the file into sentences 
+     */
+    public void createSentences()
+    {
+        while(file.indexOf(".") > -1){
+            sentences.add(new Sentence(file.substring(0, file.indexOf(".") + 2)));
+            file = file.substring(file.indexOf(".") + 1);
+        }
+        /**
+        System.out.println(" =============== ");
+        for(int i = 0; i < sentences.size(); i++){
+            System.out.println(sentences.get(i).getSentence());
+        }
+        **/
+    }
+
+    
+
+}
