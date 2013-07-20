@@ -1,0 +1,29 @@
+import java.util.ArrayList;
+
+/**
+ * 
+ * A chunk can consist of 1-4 words
+ */
+public class Chunk
+{
+    //private ArrayList<Word> words;
+    private String text;
+    private String[] words;
+    /**
+     * Creates a chunk of words 
+     */
+    public Chunk(String text)
+    {
+        //words = new ArrayList<Word>();
+        this.text = text;
+        //words = new String[text.split(" ").length];
+        words = text.split(" ");
+    }
+    
+    
+    public String getText(){
+        return text;
+    }
+
+    
+}
