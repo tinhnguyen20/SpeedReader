@@ -5,54 +5,64 @@ import java.io.IOException;
 /**
  * - Contains an arraylists of chunks
  * - Chunks the sentences
+ *   - chunks based off of punctuation marks, conjunctions, and prepositions
+ * - Breaks down chunks that are too large 
+ * - Parses up chunks that are too small
  * 
+ * Using set allows for quick lookup
  */
 public class Sentence
 {
     private String sentence;
     private Scanner in;
-    private ArrayList<Chunk> chunks;
     private String[] words;
     private ArrayList<Integer> chunk_splits;
+    private ArrayList<Chunk> chunks;
     private Set<String> prepositions;
-    
-
+    private Set<String> conjunctions;
+    private int upperbound;
+    private int lowerbound;
+    private int desired_length;
     /**
+     * Constructor
+     * - loads preposistions
+     * - sentence -> array of words
      * 
      */
-    public Sentence(String sentence)
+    public Sentence(String sentence, int desired_length)
     {
         this.sentence = sentence;
+        this.desired_length = desired_length;
         chunks = new ArrayList<Chunk>();
         words = new String[sentence.split(" ").length];
         chunk_splits = new ArrayList<Integer>();
         prepositions = new HashSet <String>();
-        
-        
-        // chunk sentence
-        
-        
-        String temp = sentence;
-        System.out.println(sentence + "*");
-        /**
-        while(temp.indexOf(" ") > -1){
-            words.add(temp.substring(0, temp.indexOf(" ")));
-            temp =  temp.substring(temp.indexOf(" ") + 1);
-        }
-        **/
+        conjunctions = new HashSet <String>();
         words = sentence.split(" ");
-        /**
-        for(String word: words){
-            System.out.println(word);
-        }
-        **/
+        String temp = sentence;
+
+        upperbound = 0;
+        lowerbound = 0;
+
+        //System.out.println(sentence + "*");
+
+        loadPrepositions();
+        loadConjunctions();
         chunkSentence();
+        breakDown(desired_length);
+        parseUp();
 
     }
 
+    /**
+     *  .txt -> Set (String)
+     *  interp. loads all prepositions from temp into set
+     *  
+     *  allows words to be checked quickly
+     */
     public void loadPrepositions(){
         try{
-            in = new Scanner(new File("prepositions.txt"));
+            in = new Scanner(new File("prep.txt"));
         }catch(IOException i){
             System.out.println("Error: " + i.getMessage());
         }
@@ -63,32 +73,390 @@ public class Sentence
             prepositions.add(text);
         }
 
+        /**
         Iterator itr = prepositions.iterator();
         while(itr.hasNext()){
-            System.out.println(itr.next());
+        System.out.println(itr.next());
         }
+         **/
 
     }
 
     /**
+     *  Loading Conjunctions into a Hash Set for fast look up
+     */
+    public void loadConjunctions(){
+        try{
+            in = new Scanner(new File("conjunctions.txt"));
+        }catch(IOException i){
+            System.out.println("Error: " + i.getMessage());
+        }
+
+        String text = "";
+        while(in.hasNextLine()){
+            text = in.nextLine();
+            conjunctions.add(text);
+        }
+
+        /**
+        Iterator itr = prepositions.iterator();
+        while(itr.hasNext()){
+        System.out.println(itr.next());
+        }
+         **/
+    }
+
+    /**
+     * Sentence -> Chunk
+     * 
      * adds chunks to the chunks(arraylist)
      * 
-     *  - at first chunk by commas,
+     *  - 1. commas
+     *  - 2. prepositions
+     *  
+     *  NOTE:
+     *  To avoid ConcurrentModifierException
+     *  temp_chunks and chunks are used interchangably
      */
     public void chunkSentence(){
-        System.out.println(sentence);
-        while(sentence.indexOf(",") > -1){
-            System.out.println("_____");
-            chunk_splits.add(sentence.indexOf(","));
+        ArrayList<Chunk> temp_chunks = new ArrayList<Chunk>(); // to avoid concurrent modifier exception
+        String temp = sentence;
+
+        // ---- Main Subphrase
+        // -- Commas, SemiColon, Colon, parenthesis, quotes
+
+        int comma = 0;
+        int colon = 0;
+        int semi_colon = 0;
+        int dash = 0;
+        int left_parenth = 0;
+        int right_parenth = 0;
+        int quote = 0;
+        int left_quote = 0;
+        int right_quote = 0;
+        while(temp.indexOf(",") > -1 || temp.indexOf(":") > -1 || 
+        temp.indexOf(";") > -1 || temp.indexOf("—") > -1 ||
+        temp.indexOf("(") > -1 || temp.indexOf(")") > -1 ||
+        temp.indexOf('"') > -1 || temp.indexOf('”') > -1 || 
+        temp.indexOf('“') > -1){
+            comma = temp.indexOf(",");
+            colon = temp.indexOf(":");
+            semi_colon = temp.indexOf(";");
+            dash = temp.indexOf("—");
+            left_parenth = temp.indexOf("(");
+            right_parenth = temp.indexOf(")");
+            quote = temp.indexOf('"');
+            left_quote = temp.indexOf('“');
+            right_quote = temp.indexOf('”');
+
+            // add in left quote and regular quote. 
+            // commas
+            
+            System.out.println(temp);
+            if((comma < colon || colon == -1) && 
+            (comma < semi_colon || semi_colon == -1) && 
+            (comma < dash || dash == -1) &&
+            (comma < left_parenth || left_parenth == -1 || left_parenth == 0) &&
+            (comma < right_parenth || right_parenth == -1) &&
+            (comma < quote || quote == -1 || quote == 0) &&
+            (comma < left_quote || left_quote == -1 || left_quote == 0) &&
+            (comma < right_quote || right_quote == -1) &&
+            comma != -1){
+                System.out.println("------------Commas-----------");
+
+                if(temp.charAt(comma + 1) == ' '){
+                    temp_chunks.add(new Chunk(temp.substring(0, temp.indexOf(",") + 2)));
+                    temp = temp.substring(temp.indexOf(",") + 1);
+                }
+                else if((temp.charAt(comma + 1) == '"') || (temp.charAt(comma + 1) == '”')){
+                    temp_chunks.add(new Chunk(temp.substring(0, temp.indexOf(",") + 3)));
+                    temp = temp.substring(temp.indexOf(",") + 2);
+                }
+            }    //colon
+            else if((colon < comma || comma == -1) && 
+            (colon < semi_colon || semi_colon == -1) && 
+            (colon < dash || dash == -1) &&
+            (colon < left_parenth || left_parenth == -1 || left_parenth == 0) &&
+            (colon < right_parenth || right_parenth == -1) &&
+            (colon < quote || quote == -1 || quote == 0) &&
+            (colon < left_quote || left_quote == -1 || left_quote == 0) &&
+            (colon < right_quote || right_quote == -1) &&
+            colon != -1){
+                System.out.println("------------Colon-----------");
+                temp_chunks.add(new Chunk(temp.substring(0, temp.indexOf(":") + 2)));
+                temp = temp.substring(temp.indexOf(":") + 1);
+            }    // semi colon
+            else if((semi_colon < comma || comma == -1) && 
+            (semi_colon < colon || colon == -1) && 
+            (semi_colon < dash || dash == -1) &&
+            (semi_colon < left_parenth || left_parenth == -1 || left_parenth == 0) &&
+            (semi_colon < right_parenth || right_parenth == -1) &&
+            (semi_colon < quote || quote == -1 || quote == 0) &&
+            (semi_colon < left_quote || left_quote == -1 || left_quote == 0) &&
+            (semi_colon < right_quote || right_quote == -1) &&
+            semi_colon != -1){
+                System.out.println("------------SemiColon-----------");
+                temp_chunks.add(new Chunk(temp.substring(0, temp.indexOf(";") + 2)));
+                temp = temp.substring(temp.indexOf(";") + 1);
+            }    // dash
+            else if((dash < comma || comma == -1) &&
+            (dash < colon || colon == -1) && 
+            (dash < semi_colon || semi_colon == -1) && 
+            (dash < left_parenth || left_parenth == -1 || left_parenth == 0) &&
+            (dash < right_parenth || right_parenth == -1) &&
+            (dash < quote || quote == -1 || quote == 0) &&
+            (dash < left_quote || left_quote == -1 || left_quote == 0) &&
+            (dash < right_quote || right_quote == -1) &&
+            dash != -1){
+                System.out.println("------------Dash-----------");
+                temp_chunks.add(new Chunk(temp.substring(0, temp.indexOf("—") + 2)));
+                temp = temp.substring(temp.indexOf("—") + 1);
+            }    // left parenthesis
+            else if((left_parenth < colon || colon == -1) && 
+            (left_parenth < semi_colon || semi_colon == -1) && 
+            (left_parenth < dash || dash == -1) &&
+            (left_parenth < comma || comma == -1) &&
+            (left_parenth < right_parenth || right_parenth == -1) &&
+            (left_parenth != -1) &&
+            (left_parenth < quote || quote == -1 || quote == 0) &&
+            (left_parenth < left_quote || left_quote == -1 || left_quote == 0) &&
+            (left_parenth < right_quote || right_quote == -1) &&
+            (left_parenth != 0)){
+                System.out.println("------------LeftParenthesis-----------");
+                temp_chunks.add(new Chunk(temp.substring(0, temp.indexOf("("))));
+                temp = temp.substring(temp.indexOf("("));
+                //System.out.println(temp);
+            }   // right parenth
+            else if((right_parenth < colon || colon == -1) && 
+            (right_parenth < semi_colon || semi_colon == -1) && 
+            (right_parenth < dash || dash == -1) &&
+            (right_parenth < left_parenth || left_parenth == -1 || left_parenth == 0) &&
+            (right_parenth < comma || comma == -1) &&
+            (right_parenth < quote || quote == -1 || quote == 0) &&
+            (right_parenth < left_quote || left_quote == -1 || left_quote == 0) &&
+            (right_parenth < right_quote || right_quote == -1) &&
+            (right_parenth != -1)){
+                System.out.println("------------RightParenthesis-----------");
+
+                if(temp.charAt(right_parenth + 1) == ' '){
+                    temp_chunks.add(new Chunk(temp.substring(0, right_parenth + 2)));
+                    temp = temp.substring(right_parenth + 1);
+                }
+                else if((temp.charAt(right_parenth + 1) == ',')){
+                    temp_chunks.add(new Chunk(temp.substring(0, right_parenth + 3)));
+                    temp = temp.substring(right_parenth + 2);
+                }
+                else{
+                    temp_chunks.add(new Chunk(temp.substring(0, right_parenth + 1)));
+                    temp =  temp.substring(right_parenth + 1);
+                }
+            }
+            else if((quote < comma || comma == -1) && 
+            (quote < semi_colon || semi_colon == -1) && 
+            (quote < dash || dash == -1) &&
+            (quote < left_parenth || left_parenth == -1 || left_parenth == 0) &&
+            (quote < right_parenth || right_parenth == -1) &&
+            (quote < colon || colon == -1) &&
+            (quote < left_quote || left_quote == -1) &&
+            (quote < right_quote || right_quote == -1) &&
+            (quote != -1) &&
+            (quote != 0)){
+                System.out.println("------------Quote-----------");
+
+                /// BUG HERE!
+                if(temp.charAt(quote - 1) == ' '){
+                    temp_chunks.add(new Chunk(temp.substring(0, quote)));
+                    temp = temp.substring(quote);
+                    System.out.println("------------Left----------");
+                    System.out.println(temp);
+                }
+                else{
+                    temp_chunks.add(new Chunk(temp.substring(0, quote + 2)));
+                    temp = temp.substring(quote + 1);
+                    System.out.println("------------Right----------");
+                }
+                //System.out.println("HI");
+            }
+            else if((left_quote < comma || comma == -1) && 
+            (left_quote < semi_colon || semi_colon == -1) && 
+            (left_quote < dash || dash == -1) &&
+            (left_quote < left_parenth || left_parenth == -1 || left_parenth == 0) &&
+            (left_quote < right_parenth || right_parenth == -1) &&
+            (left_quote < quote || quote == -1 || quote == 0) &&
+            (left_quote < colon || colon == -1) &&
+            (left_quote < right_quote || right_quote == -1) &&
+            (left_quote != -1) &&
+            (left_quote != 0)){
+                System.out.println("------------LeftQuote-----------");
+                temp_chunks.add(new Chunk(temp.substring(0, temp.indexOf('“'))));
+                temp = temp.substring(temp.indexOf('“'));
+                //System.out.println("HI");
+            }
+            else if((right_quote < comma || comma == -1) && 
+            (right_quote < semi_colon || semi_colon == -1) && 
+            (right_quote < dash || dash == -1) &&
+            (right_quote < left_parenth || left_parenth == -1 || left_parenth == 0) &&
+            (right_quote < right_parenth || right_parenth == -1) &&
+            (right_quote < quote || quote == -1 || quote == 0) &&
+            (right_quote < left_quote || left_quote == -1 || left_quote == 0) &&
+            (right_quote < colon || colon == -1) &&
+            right_quote != -1){
+                System.out.println("------------RightQuote-----------");
+                temp_chunks.add(new Chunk(temp.substring(0, temp.indexOf('”') + 2)));
+                temp = temp.substring(temp.indexOf('”') + 1);
+                //System.out.println("HI");
+            }
+
+            // ignore left_quote and quote when it begins. 
+            // 
+            if((quote == 0 || left_quote == 0) &&
+            (comma == -1) &&
+            (semi_colon == -1) &&
+            (colon == -1) &&
+            (dash == -1) &&
+            (left_parenth == -1) &&
+            (right_parenth == -1) &&
+            (right_quote == -1))
+            {
+                break;
+            }
+
+            //System.out.println("BUG");
+            // BUG
         }
-        
-        for(int splits:chunk_splits){
-            System.out.println(splits);
+        temp_chunks.add(new Chunk(temp));
+
+        // Punctuation Tester 
+
+        for(Chunk chunk:temp_chunks){
+            System.out.println(chunk.getText());
         }
-        
-        
-       
-        
+
+        // ---- Conjunctions
+
+        int num_conj = 0;
+        for(Chunk chunk:temp_chunks){
+            String chunk_text = chunk.getText().trim();
+            for(String word:chunk.getWords()){
+                // check if conjunction
+                int conj_pos = chunk_text.indexOf(word);
+                if(conjunctions.contains(word)){
+                    System.out.println(chunk_text);
+                    System.out.println(word);
+                    System.out.println(conj_pos);
+                    if((conj_pos == 0) && 
+                    (chunk_text.substring(word.length() + 1).indexOf(word) > -1)){
+                        // making variations to chunk_text to avoid re looking up the first word
+                        // ex. found 2nd "and" in "and played with his brothers and sisters all day"
+                        conj_pos = chunk_text.substring(word.length() + 1).indexOf(word) + word.length() + 1;
+                        //conj_pos -= word.length();
+                        if((chunk_text.charAt(conj_pos - 1) == ' ') &&
+                        (chunk_text.charAt(conj_pos + word.length()) == ' ')){
+                            System.out.println("INSIDE");
+                            chunks.add(new Chunk(chunk_text.substring(0, conj_pos)));
+                            chunk_text = chunk_text.substring(conj_pos);
+                        }
+                    }
+                    else if((conj_pos == chunk_text.length() - word.length()) ||
+                    (conj_pos == 0) || 
+                    ((chunk_text.charAt(conj_pos - 1) == ' ') &&
+                        (chunk_text.charAt(conj_pos + word.length()) == ' '))){
+                        System.out.println("OUTSIDE");
+                        chunks.add(new Chunk(chunk_text.substring(0, chunk_text.indexOf(word))));
+                        chunk_text = chunk_text.substring(conj_pos);
+                    }
+                }
+                //System.out.println(conjunctions.contains(word));
+            }
+            chunks.add(new Chunk(chunk_text));
+        }
+
+        System.out.println("Number of Conjuctions detected: " + num_conj);
+        temp_chunks.clear();
+        // clearing all the chunks that have nothing 
+        for(Chunk chunk: chunks){
+            if(!chunk.isEmpty()){
+                temp_chunks.add(chunk);
+            }
+        }
+        chunks.clear();        
+        // Printing Conj Chunks
+        System.out.println("************Printing Conj Splits*****************");
+        for(Chunk chunk: temp_chunks){
+            System.out.println(chunk.getText());
+        }
+        System.out.println("************End Conj Splits*****************");
+        // clear the temp arraylist to use again for prepositions
+
+        // ---- Prepositions
+        // temp_chunks -> chunks
+        int temp_prep_pos = 0;
+        int prep_pos = 0;
+        for(Chunk chunk:temp_chunks){
+            String chunk_text = chunk.getText();
+            for(String word:chunk.getWords()){
+                //if a preposition and not just a prep inside word. ex.  'as' in 'was'
+                prep_pos = chunk_text.indexOf(" " + word + " ") + 1;
+                temp_prep_pos = 0;
+                if(prepositions.contains(word)){ 
+
+                    //System.out.println(word);
+                    //System.out.println(prep_pos);
+                    /// NEEDS RETYPING
+
+                    // gets the new conjunction
+
+                    if(prep_pos == 0){
+                        // if there is another instance of that word, split it there
+                        temp_prep_pos = (chunk_text.substring(word.length() + 1).indexOf(word));
+                        if((temp_prep_pos > -1) &&
+                        (chunk_text.charAt(temp_prep_pos - 1) == ' ') && 
+                        (chunk_text.charAt(temp_prep_pos + word.length()) == ' ')){
+                            prep_pos = temp_prep_pos;
+                            chunks.add(new Chunk(chunk_text.substring(0, prep_pos)));
+
+                            //System.out.println(chunk_text.substring(0, prep_pos));
+
+                            chunk_text = chunk_text.substring(prep_pos);
+
+                        }
+                        
+                    }
+                    else if((prep_pos > 0) &&
+                    (chunk_text.indexOf(" " + word + " ") > -1)){
+                        prep_pos = chunk_text.indexOf(" " + word + " ") + 1;
+                        chunks.add(new Chunk(chunk_text.substring(0, prep_pos)));
+                        chunk_text = chunk_text.substring(prep_pos);
+                    }
+
+                }
+            }
+            chunks.add(new Chunk(chunk_text));
+            //System.out.println(chunk_text);
+        }
+
+        // get rid of old chunks and update
+        temp_chunks.clear();
+        for(Chunk chunk: chunks){
+            if(!chunk.isEmpty()){
+                temp_chunks.add(chunk);
+            }
+        }
+
+        // Testing Chunks
+        System.out.println();
+        System.out.println("----Printing Prep Splits----");
+
+        for(Chunk chunk:temp_chunks){
+            System.out.println(chunk.getText());
+            //System.out.println(chunk.getText().length());
+        }
+
+        //System.out.print(prepositions.contains("on"));
+
+        System.out.println("----Printing Ending----");
+        System.out.println();
+
     }
 
     public String getSentence(){
@@ -99,4 +467,250 @@ public class Sentence
         return chunks;
     }
 
+    public void breakDown(int max_words){
+        ArrayList<Chunk> temp_chunks = new ArrayList<Chunk>();
+        String chunk_text;
+        int chunk_length;
+        int temp = 0;
+        int num_chunks = 0;
+
+        double ratio = 0.0;
+        int split_pos = 0;
+        int nearest_space = 0;
+        int compare = 0;
+        for(Chunk chunk: chunks){
+            chunk_text = chunk.getText();
+            chunk_length = chunk_text.length();
+            temp = 0;
+            if(chunk.getNumWords() > max_words){
+                // determines how many chunks will be made
+                if((chunk.getNumWords() / (double)(max_words)) > 2){
+                    if(((int)(((double)(chunk.getNumWords()) / max_words) + 0.5) == chunk.getNumWords()/max_words))
+                        num_chunks = chunk.getNumWords()/max_words;
+
+                    else
+                        num_chunks = (chunk.getNumWords() / max_words) + 1;
+                }
+                else
+                    num_chunks = 2;
+
+                for(int i= 1; i< num_chunks; i++){
+                    ratio = ((double)(i)) / num_chunks;
+                    split_pos = (int)(ratio * chunk_length);
+                    nearest_space = 1000000; // set to arbitrary high number 
+                    compare = 1000000;
+                    for(int space_pos: chunk.getSpacePositions()){
+                        // find nearest sapce
+                        if(Math.abs(space_pos - split_pos) < compare){
+                            //System.out.println("CHANGED");
+                            nearest_space = space_pos;
+                            compare = Math.abs(space_pos - split_pos);
+                        }
+                    }
+
+                    temp_chunks.add(new Chunk(chunk_text.substring(0, nearest_space - temp + 1)));
+                    chunk_text = chunk_text.substring(nearest_space - temp + 1);
+                    temp = nearest_space;
+
+                }
+                temp_chunks.add(new Chunk(chunk_text));
+            }
+            else{
+                temp_chunks.add(chunk);
+            }
+        }
+
+        chunks.clear();
+
+        for(Chunk chunk: temp_chunks){
+            chunks.add(chunk);
+        }
+
+    }
+    /**
+     *  interp: Parses the chunks arraylsit, starting from the smallest.
+     */
+    public void parseUp(){
+        ArrayList<Chunk> temp_chunks = new ArrayList<Chunk>();
+        int average_word_length = 4;
+        int average_chunk_length = average_word_length * desired_length;
+        upperbound = average_chunk_length + average_word_length;
+        lowerbound = average_chunk_length - average_word_length;
+        int before = 0;
+        int present = 0;
+        int after = 0;
+
+        System.out.println("PRINTING NEW BROKEN CHUNKS");
+        for(Chunk chunk: chunks){
+            System.out.println(chunk.getText());
+        }
+
+        
+        if(chunks.size() > 1){
+            while(!allInBounds(chunks)){
+                Chunk new_chunk;
+                present = chunks.indexOf(getSmallest(chunks));
+
+                //System.out.println("Length of Chunks: " + chunks.size());
+                //System.out.println("Average Chunk Length: " + average_chunk_length);
+                System.out.println();
+                for(int i = 0; i < average_chunk_length; i++){
+                    System.out.print("a");
+                }
+                System.out.println();
+
+                for(Chunk chunk: chunks){
+                    System.out.println(chunk.getText());
+                }
+
+                System.out.println();
+                System.out.println("Smmallest Chunk: " +  chunks.get(present).getText());
+
+                System.out.println();
+                System.out.println("Modifying Chunk");
+                if(present == 0){
+                    // if the smallest is the first, there is no choice then to add to the second
+
+                    new_chunk = new Chunk(chunks.get(present).getText() + " " + chunks.get(present + 1).getText());
+
+                    System.out.println(new_chunk.getText());
+
+                    chunks.remove(present + 1);
+                    chunks.remove(present);
+                    chunks.add(0, new_chunk);
+                }
+                else if(present == chunks.size() - 1){
+                    // if the smallest is the last, you must add to the second to last
+                    new_chunk = new Chunk(chunks.get(present - 1).getText() + " " + chunks.get(present).getText());
+
+                    System.out.println(new_chunk.getText());
+
+                    chunks.remove(present);
+                    chunks.remove(present - 1);
+                    chunks.add(new_chunk);
+                }
+                // else it is in the middle
+                else{
+                    Chunk combo1 = new Chunk(chunks.get(present - 1).getText() + " " + chunks.get(present).getText());
+                    Chunk combo2 = new Chunk(chunks.get(present).getText() + " " + chunks.get(present + 1).getText());
+
+                    // if both are inbounds, compare
+                    if(combo1.inBounds(lowerbound, upperbound) && combo2.inBounds(lowerbound, upperbound)){
+                        // make combo1
+                        if(Math.abs(average_chunk_length - combo1.getLength()) < Math.abs(average_chunk_length - combo2.getLength())){
+                            chunks.remove(present);
+                            chunks.remove(present - 1);
+                            chunks.add(present - 1, combo1);
+
+                            System.out.println(combo1.getText());
+                        }
+                        else{
+                            chunks.remove(present + 1);
+                            chunks.remove(present);
+                            chunks.add(present, combo2);
+
+                            System.out.println(combo2.getText());
+                        }
+                    }
+                    else if(combo1.inBounds(lowerbound, upperbound)){
+                        chunks.remove(present);
+                        chunks.remove(present - 1);
+                        chunks.add(present - 1, combo1);
+
+                        System.out.println(combo1.getText());
+                    }
+                    else if(combo2.inBounds(lowerbound, upperbound)){
+                        chunks.remove(present + 1);
+                        chunks.remove(present);
+                        chunks.add(present, combo2);
+
+                        System.out.println(combo2.getText());
+                    } // none of the combos are inbounds, take the smaller one.
+                    else{
+                        // check if all three combined are applicable
+                        Chunk combo3 = new Chunk(chunks.get(present - 1).getText() + " " + chunks.get(present).getText() + " " + chunks.get(present+1).getText());
+                        if(combo3.inBounds(lowerbound, upperbound)){
+
+                            chunks.remove(present + 1);
+                            chunks.remove(present);
+                            chunks.remove(present - 1);
+                            chunks.add(present - 1, combo3);
+                            System.out.println(combo3.getText());
+                        } 
+
+                        // check all combos and compare
+                        else{
+                            System.out.println("CHECKING");
+                            //chunks.add(present + 1);
+
+                            if(Math.abs(average_chunk_length - combo3.getLength()) <= Math.abs(average_chunk_length - combo1.getLength()) &&
+                            (Math.abs(average_chunk_length - combo3.getLength()) <= Math.abs(average_chunk_length - combo2.getLength()))){
+                                chunks.remove(present + 1);
+                                chunks.remove(present);
+                                chunks.remove(present - 1);
+                                chunks.add(present - 1, combo3);  
+
+                                System.out.println(combo3.getText());
+                            }// combo1 is closer to average
+                            else if(Math.abs(average_chunk_length - combo1.getLength()) <= Math.abs(average_chunk_length - combo3.getLength()) &&
+                            (Math.abs(average_chunk_length - combo1.getLength()) <= Math.abs(average_chunk_length - combo2.getLength()))){
+                                chunks.remove(present);
+                                chunks.remove(present - 1);
+                                chunks.add(present - 1, combo1);
+
+                                System.out.println(combo1.getText());
+                            }// combo2 is closer to average
+                            else if(Math.abs(average_chunk_length - combo2.getLength()) <= Math.abs(average_chunk_length - combo1.getLength()) &&
+                            (Math.abs(average_chunk_length - combo2.getLength()) <= Math.abs(average_chunk_length - combo3.getLength()))){
+                                chunks.remove(present + 1);
+                                chunks.remove(present);
+                                chunks.add(present, combo2);
+
+                                System.out.println(combo2.getText());
+                            }
+
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * gets the smallest chunk that is out of bounds
+     *  - if all are inbounds, return null
+     * 
+     * ArrayList<Chunk> -> Chunk, null
+     */
+    public Chunk getSmallest(ArrayList<Chunk> list){
+        Chunk smallest_chunk = null;
+
+        for(Chunk chunk: list){
+            // if the chunk is out of bounds and is the smallest
+            // if the chunk is larger than the upperbounds, leave it
+            if((smallest_chunk == null) || 
+            (!(chunk.inBounds(lowerbound, upperbound)) && chunk.getLength() < smallest_chunk.getLength()))
+            {
+                //System.out.println(chunk.getText());
+                smallest_chunk = chunk;
+            }
+        }
+
+        return smallest_chunk;
+    }
+
+    /**
+     *  Checks if most of the chunks are inbounds
+     *   - 80%
+     */
+    public boolean allInBounds(ArrayList<Chunk> list){
+        for(Chunk chunk: list){
+            if(!chunk.inBounds(lowerbound, upperbound) && chunk.getLength() < upperbound){
+                return false;
+            }
+        }
+        return true;
+    }
+
 }
+
