@@ -10,6 +10,7 @@ public class Chunk
     private String text;
     private String[] words;
     private ArrayList<Integer> space_positions;
+    private boolean inRange;
     /**
      * Creates a chunk of words 
      */
@@ -19,16 +20,11 @@ public class Chunk
         words = new String[text.split(" ").length];
         words = text.split(" ");
         space_positions = new ArrayList<Integer>();
+        inRange = false;
         
         String temp_text = text.trim();
         int add = 0;
         int space = 0;
-        //System.out.println("''''");
-        //System.out.println(text);
-        
-        
-        
-        
         while(temp_text.indexOf(" ") > -1){
             space = temp_text.indexOf(" ");
             temp_text = temp_text.substring(space + 1);
