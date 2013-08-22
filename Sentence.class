@@ -13,16 +13,6 @@ import java.io.IOException;
  * Using set allows for quick lookup
  */
 public class Sentence {
-//	private static String COMMA = ",";
-	private static String COLON = ":";
-	private static String SEMI_COLON = ";";
-	private static String LEFT_PARENTH = "(";
-	private static String RIGHT_PARENTH = ")";
-	private static char QUOTE = '"';
-	private static int SPECIAL_BIG_DASH = 8212;
-	private static int LEFT_SPECIAL_DOUBLEQUOTE = 8220;
-	private static int RIGHT_SPECIAL_DOUBLEQUOTE = 8221;
-	
     private String sentence;
     private Scanner in;
     private ArrayList<Chunk> chunks;
@@ -43,20 +33,24 @@ public class Sentence {
         chunks = new ArrayList<Chunk>();
         prepositions = new HashSet <String>();
         conjunctions = new HashSet <String>();
-
         upperbound = 0;
         lowerbound = 0;
-
-        //System.out.println(sentence + "*");
-
         
         loadPrepositions();
         loadConjunctions();
-        chunkSentence();
-        breakDown(desired_length);
-        parseUp();
+        run();
+        
 
     }
+    
+    
+    public void run(){
+    	chunkSentence();
+        breakDown(desired_length);
+        parseUp();
+    }
+    
+    
 
     /**
      *  .txt -> Set (String)
@@ -70,15 +64,11 @@ public class Sentence {
         }catch(IOException i){
             System.out.println("Error: " + i.getMessage());
         }
-
         String text = "";
         while(in.hasNextLine()){
             text = in.nextLine();
             prepositions.add(text);
         }
-
-        
-
     }
 
     /**
@@ -118,7 +108,6 @@ public class Sentence {
 
         // ---- Main Subphrase
         // -- Commas, SemiColon, Colon, parenthesis, quotes
-
         int commaIndex = temp.indexOf(Punctuation.COMMA.character());
         int colonIndex = temp.indexOf(Punctuation.COLON.character());
         int semiColonIndex = temp.indexOf(Punctuation.SEMICOLON.character());
@@ -129,271 +118,153 @@ public class Sentence {
         int leftQuoteIndex = temp.indexOf(Punctuation.LEFT_QUOTE.character());
         int rightQuoteIndex = temp.indexOf(Punctuation.RIGHT_QUOTE.character());
         
-        while(temp.indexOf(Punctuation.COMMA.character()) > -1 || temp.indexOf(Punctuation.COLON.character()) > -1 || 
-        temp.indexOf(Punctuation.SEMICOLON.character()) > -1 || temp.indexOf(Punctuation.DASH.character()) > -1 ||
-        temp.indexOf(Punctuation.LEFT_PARENTH.character()) > -1 || temp.indexOf(Punctuation.RIGHT_PARENTH.character()) > -1 ||
-        temp.indexOf(Punctuation.QUOTE.character()) > -1 || temp.indexOf(Punctuation.RIGHT_QUOTE.character()) > -1 || 
-        temp.indexOf(Punctuation.LEFT_QUOTE.character()) > -1){
-            
+        
+        while(commaIndex > -1 || colonIndex > -1 || 
+        semiColonIndex > -1 || dashIndex > -1 ||
+        leftParenthIndex > -1 || rightParenthIndex > -1 ||
+        quoteIndex > -1 || rightQuoteIndex > -1 || 
+        leftQuoteIndex > -1){
 
-            // add in left quote and regular quote. 
-            // commas
-            
-            System.out.println(temp);
-            
-            
-            
-            
-            
+        	
             
             Punctuation punctuation = findEarlistPunctuation(commaIndex, colonIndex, semiColonIndex, dashIndex, leftParenthIndex, 
             												rightParenthIndex, quoteIndex, leftQuoteIndex, rightQuoteIndex);
 
-            switch(punctuation){
-            
-            case COMMA:
-            	Chunk ch1 = createCommaChunk(temp, commaIndex);
-            	temp =  temp.substring(ch1.getLength());
-            	temp_chunks.add(ch1);
+            if(punctuation == null){
             	break;
-            case COLON:
-            	Chunk ch2 = createNormalChunk(temp, colonIndex);
-            	temp =  temp.substring(ch2.getLength());
-            	temp_chunks.add(ch2);
-            	break;
-            case SEMICOLON:
-            	Chunk ch3 = createNormalChunk(temp, semiColonIndex);
-            	temp =  temp.substring(ch3.getLength());
-            	temp_chunks.add(ch3);
-            	break;
-            case DASH:
-            	Chunk ch4 = createNormalChunk(temp, dashIndex);
-            	temp =  temp.substring(ch4.getLength());
-            	temp_chunks.add(ch4);
-            	break;
-            case LEFT_PARENTH:
-            	Chunk ch5 = createSpecialLeftChunk(temp, leftParenthIndex);
-            	temp =  temp.substring(ch5.getLength());
-            	temp_chunks.add(ch5);
-            	break;
-            case RIGHT_PARENTH:
-            	Chunk ch6 = createNormalChunk(temp, rightParenthIndex);
-            	temp =  temp.substring(ch6.getLength());
-            	temp_chunks.add(ch6);
-            	break;
-            case QUOTE:
-            	Chunk ch7 = createQuoteChunk(temp, quoteIndex);
-            	temp =  temp.substring(ch7.getLength());
-            	temp_chunks.add(ch7);
-            	break;
-            case LEFT_QUOTE:
-            	Chunk ch8 = createSpecialLeftChunk(temp, leftQuoteIndex);
-            	temp =  temp.substring(ch8.getLength());
-            	temp_chunks.add(ch8);
-            	break;
-            case RIGHT_QUOTE: 
-            	Chunk ch9 = createNormalChunk(temp, rightQuoteIndex);
-            	temp =  temp.substring(ch9.getLength());
-            	temp_chunks.add(ch9);
-            	break;
-			default:
-				System.out.println("DID NOTHING");
-				break;
-            
+            }
+            else{
+	            switch(punctuation){
+	            case COMMA:{
+	            	Chunk ch = createCommaChunk(temp, commaIndex);
+	            	temp =  temp.substring(ch.getLength());
+	            	temp_chunks.add(ch);
+	            	break;
+	            }
+	            case COLON:{
+	            	Chunk ch = createNormalChunk(temp, colonIndex);
+	            	temp =  temp.substring(ch.getLength());
+	            	temp_chunks.add(ch);
+	            	break;
+	            }
+	            case SEMICOLON:{
+	            	Chunk ch = createNormalChunk(temp, semiColonIndex);
+	            	temp =  temp.substring(ch.getLength());
+	            	temp_chunks.add(ch);
+	            	break;
+	            }
+	            case DASH:{
+	            	Chunk ch = createNormalChunk(temp, dashIndex);
+	            	temp =  temp.substring(ch.getLength());
+	            	temp_chunks.add(ch);
+	            	break;
+	            }
+	            case LEFT_PARENTH:{
+	            	Chunk ch = createSpecialLeftChunk(temp, leftParenthIndex);
+	            	temp =  temp.substring(ch.getLength());
+	            	temp_chunks.add(ch);
+	            	break;
+	            }
+	            case RIGHT_PARENTH:{
+	            	Chunk ch = createNormalChunk(temp, rightParenthIndex);
+	            	temp =  temp.substring(ch.getLength());
+	            	temp_chunks.add(ch);
+	            	break;
+	            }
+	            case QUOTE:{
+	            	Chunk ch = createQuoteChunk(temp, quoteIndex);
+	            	temp =  temp.substring(ch.getLength());
+	            	temp_chunks.add(ch);
+	            	break;
+	            }
+	            case LEFT_QUOTE:{
+	            	Chunk ch = createSpecialLeftChunk(temp, leftQuoteIndex);
+	            	temp =  temp.substring(ch.getLength());
+	            	temp_chunks.add(ch);
+	            	break;
+	            }
+	            case RIGHT_QUOTE:{
+	            	Chunk ch = createNormalChunk(temp, rightQuoteIndex);
+	            	temp =  temp.substring(ch.getLength());
+	            	temp_chunks.add(ch);
+	            	break;
+	            }
+				default:
+					System.out.println("DID NOTHING");
+					break;
+	            
+	            }
             }
             
-            
-            
-            
-            
-            
-            
-            
-            
-            /*
-            if((comma < colon || colon == -1) && 
-            (comma < semi_colon || semi_colon == -1) && 
-            (comma < dash || dash == -1) &&
-            (comma < left_parenth || left_parenth == -1 || left_parenth == 0) &&
-            (comma < right_parenth || right_parenth == -1) &&
-            (comma < quote || quote == -1 || quote == 0) &&
-            (comma < left_quote || left_quote == -1 || left_quote == 0) &&
-            (comma < right_quote || right_quote == -1) &&
-            comma != -1){
-                System.out.println("------------Commas-----------");
-
-                if(temp.charAt(comma + 1) == ' '){
-                    temp_chunks.add(new Chunk(temp.substring(0, temp.indexOf(",") + 2)));
-                    temp = temp.substring(temp.indexOf(",") + 1);
-                }
-                else if((temp.charAt(comma + 1) == '"') || ((int)temp.charAt(comma + 1) == RIGHT_SPECIAL_DOUBLEQUOTE)){
-                    temp_chunks.add(new Chunk(temp.substring(0, temp.indexOf(",") + 3)));
-                    temp = temp.substring(temp.indexOf(",") + 2);
-                }
-            }    //colon
-            else if((colon < comma || comma == -1) && 
-            (colon < semi_colon || semi_colon == -1) && 
-            (colon < dash || dash == -1) &&
-            (colon < left_parenth || left_parenth == -1 || left_parenth == 0) &&
-            (colon < right_parenth || right_parenth == -1) &&
-            (colon < quote || quote == -1 || quote == 0) &&
-            (colon < left_quote || left_quote == -1 || left_quote == 0) &&
-            (colon < right_quote || right_quote == -1) &&
-            colon != -1){
-                System.out.println("------------Colon-----------");
-                temp_chunks.add(new Chunk(temp.substring(0, temp.indexOf(":") + 2)));
-                temp = temp.substring(temp.indexOf(":") + 1);
-            }    // semi colon
-            else if((semi_colon < comma || comma == -1) && 
-            (semi_colon < colon || colon == -1) && 
-            (semi_colon < dash || dash == -1) &&
-            (semi_colon < left_parenth || left_parenth == -1 || left_parenth == 0) &&
-            (semi_colon < right_parenth || right_parenth == -1) &&
-            (semi_colon < quote || quote == -1 || quote == 0) &&
-            (semi_colon < left_quote || left_quote == -1 || left_quote == 0) &&
-            (semi_colon < right_quote || right_quote == -1) &&
-            semi_colon != -1){
-                System.out.println("------------SemiColon-----------");
-                temp_chunks.add(new Chunk(temp.substring(0, temp.indexOf(";") + 2)));
-                temp = temp.substring(temp.indexOf(";") + 1);
-            }    // dash
-            else if((dash < comma || comma == -1) &&
-            (dash < colon || colon == -1) && 
-            (dash < semi_colon || semi_colon == -1) && 
-            (dash < left_parenth || left_parenth == -1 || left_parenth == 0) &&
-            (dash < right_parenth || right_parenth == -1) &&
-            (dash < quote || quote == -1 || quote == 0) &&
-            (dash < left_quote || left_quote == -1 || left_quote == 0) &&
-            (dash < right_quote || right_quote == -1) &&
-            dash != -1){
-                System.out.println("------------Dash-----------");
-                temp_chunks.add(new Chunk(temp.substring(0, temp.indexOf((char)SPECIAL_BIG_DASH) + 2)));
-                temp = temp.substring(temp.indexOf((char)SPECIAL_BIG_DASH) + 1);
-            }    // left parenthesis
-            else if((left_parenth < colon || colon == -1) && 
-            (left_parenth < semi_colon || semi_colon == -1) && 
-            (left_parenth < dash || dash == -1) &&
-            (left_parenth < comma || comma == -1) &&
-            (left_parenth < right_parenth || right_parenth == -1) &&
-            (left_parenth != -1) &&
-            (left_parenth < quote || quote == -1 || quote == 0) &&
-            (left_parenth < left_quote || left_quote == -1 || left_quote == 0) &&
-            (left_parenth < right_quote || right_quote == -1) &&
-            (left_parenth != 0)){
-                System.out.println("------------LeftParenthesis-----------");
-                temp_chunks.add(new Chunk(temp.substring(0, temp.indexOf("("))));
-                temp = temp.substring(temp.indexOf("("));
-                //System.out.println(temp);
-            }   // right parenth
-            else if((right_parenth < colon || colon == -1) && 
-            (right_parenth < semi_colon || semi_colon == -1) && 
-            (right_parenth < dash || dash == -1) &&
-            (right_parenth < left_parenth || left_parenth == -1 || left_parenth == 0) &&
-            (right_parenth < comma || comma == -1) &&
-            (right_parenth < quote || quote == -1 || quote == 0) &&
-            (right_parenth < left_quote || left_quote == -1 || left_quote == 0) &&
-            (right_parenth < right_quote || right_quote == -1) &&
-            (right_parenth != -1)){
-                System.out.println("------------RightParenthesis-----------");
-
-                if(temp.charAt(right_parenth + 1) == ' '){
-                    temp_chunks.add(new Chunk(temp.substring(0, right_parenth + 2)));
-                    temp = temp.substring(right_parenth + 1);
-                }
-                else if((temp.charAt(right_parenth + 1) == ',')){
-                    temp_chunks.add(new Chunk(temp.substring(0, right_parenth + 3)));
-                    temp = temp.substring(right_parenth + 2);
-                }
-                else{
-                    temp_chunks.add(new Chunk(temp.substring(0, right_parenth + 1)));
-                    temp =  temp.substring(right_parenth + 1);
-                }
-            }
-            else if((quote < comma || comma == -1) && 
-            (quote < semi_colon || semi_colon == -1) && 
-            (quote < dash || dash == -1) &&
-            (quote < left_parenth || left_parenth == -1 || left_parenth == 0) &&
-            (quote < right_parenth || right_parenth == -1) &&
-            (quote < colon || colon == -1) &&
-            (quote < left_quote || left_quote == -1) &&
-            (quote < right_quote || right_quote == -1) &&
-            (quote != -1) &&
-            (quote != 0)){
-                System.out.println("------------Quote-----------");
-
-                /// BUG HERE!
-                if(temp.charAt(quote - 1) == ' '){
-                    temp_chunks.add(new Chunk(temp.substring(0, quote)));
-                    temp = temp.substring(quote);
-                    System.out.println("------------Left----------");
-                    System.out.println(temp);
-                }
-                else{
-                    temp_chunks.add(new Chunk(temp.substring(0, quote + 2)));
-                    temp = temp.substring(quote + 2);
-                    System.out.println("------------Right----------");
-                }
-                //System.out.println("HI");
-            }
-            else if((left_quote < comma || comma == -1) && 
-            (left_quote < semi_colon || semi_colon == -1) && 
-            (left_quote < dash || dash == -1) &&
-            (left_quote < left_parenth || left_parenth == -1 || left_parenth == 0) &&
-            (left_quote < right_parenth || right_parenth == -1) &&
-            (left_quote < quote || quote == -1 || quote == 0) &&
-            (left_quote < colon || colon == -1) &&
-            (left_quote < right_quote || right_quote == -1) &&
-            (left_quote != -1) &&
-            (left_quote != 0)){
-                System.out.println("------------LeftQuote-----------");
-                temp_chunks.add(new Chunk(temp.substring(0, temp.indexOf((char)LEFT_SPECIAL_DOUBLEQUOTE))));
-                temp = temp.substring(temp.indexOf((char)LEFT_SPECIAL_DOUBLEQUOTE));
-                //System.out.println("HI");
-            }
-            else if((right_quote < comma || comma == -1) && 
-            (right_quote < semi_colon || semi_colon == -1) && 
-            (right_quote < dash || dash == -1) &&
-            (right_quote < left_parenth || left_parenth == -1 || left_parenth == 0) &&
-            (right_quote < right_parenth || right_parenth == -1) &&
-            (right_quote < quote || quote == -1 || quote == 0) &&
-            (right_quote < left_quote || left_quote == -1 || left_quote == 0) &&
-            (right_quote < colon || colon == -1) &&
-            right_quote != -1){
-                System.out.println("------------RightQuote-----------");
-                temp_chunks.add(new Chunk(temp.substring(0, temp.indexOf((char)RIGHT_SPECIAL_DOUBLEQUOTE) + 2)));
-                temp = temp.substring(temp.indexOf((char)RIGHT_SPECIAL_DOUBLEQUOTE) + 1);
-                //System.out.println("HI");
-            }
-
-            // ignore left_quote and quote when it begins. 
-            // 
-            if((quote == 0 || left_quote == 0) &&
-            (comma == -1) &&
-            (semi_colon == -1) &&
-            (colon == -1) &&
-            (dash == -1) &&
-            (left_parenth == -1) &&
-            (right_parenth == -1) &&
-            (right_quote == -1))
-            {
-                break;
-            }
-            */
-
-            //System.out.println("BUG");
-            // BUG
+            commaIndex = temp.indexOf(Punctuation.COMMA.character());
+            colonIndex = temp.indexOf(Punctuation.COLON.character());
+            semiColonIndex = temp.indexOf(Punctuation.SEMICOLON.character());
+            dashIndex = temp.indexOf(Punctuation.DASH.character());
+            leftParenthIndex = temp.indexOf(Punctuation.LEFT_PARENTH.character());
+            rightParenthIndex = temp.indexOf(Punctuation.RIGHT_PARENTH.character());
+            quoteIndex = temp.indexOf(Punctuation.QUOTE.character());
+            leftQuoteIndex = temp.indexOf(Punctuation.LEFT_QUOTE.character());
+            rightQuoteIndex = temp.indexOf(Punctuation.RIGHT_QUOTE.character());
         }
         temp_chunks.add(new Chunk(temp));
 
+        
+        
+        
         // Punctuation Tester 
 
         for(Chunk chunk:temp_chunks){
             System.out.println(chunk.getText());
         }
+        chunks.clear();
+        for(Chunk chunk:temp_chunks){
+        	chunks.add(chunk);
+        }
 
         // ---- Conjunctions
+        
+        
+        chunkByConjunction(chunks);
+        clearEmptyChunks(chunks);             
+        // Printing Conj Chunks
+        System.out.println("************Printing Conj Splits***************");
 
-        int num_conj = 0;
+        printChunks();
+        
+        System.out.println("************End Conj Splits*****************");
+        
+        chunkByPreposition(chunks);
+        clearEmptyChunks(chunks);
+
+        
+        System.out.println();
+        System.out.println("----Printing Prep Splits----");
+
+        printChunks();
+
+        System.out.println("----Printing Ending----");
+        System.out.println();
+        
+    }
+    
+
+
+	private void clearEmptyChunks(ArrayList<Chunk> chunks) {
+		for(int i = 0; i < chunks.size(); i++){
+			if(chunks.get(i).isEmpty()){
+				chunks.remove(i);
+				i--;
+			}
+		}
+	}
+
+	private void chunkByConjunction(ArrayList<Chunk> list) {
+    	ArrayList<Chunk> temp_chunks = new ArrayList<Chunk>();
+    	for(Chunk ch: list){
+    		temp_chunks.add(ch);
+    	}
+    	chunks.clear();
+    	
         for(Chunk chunk:temp_chunks){
             String chunk_text = chunk.getText().trim();
             for(String word:chunk.getWords()){
@@ -425,31 +296,20 @@ public class Sentence {
                         chunk_text = chunk_text.substring(conj_pos);
                     }
                 }
-                //System.out.println(conjunctions.contains(word));
             }
             chunks.add(new Chunk(chunk_text));
         }
-
-        System.out.println("Number of Conjuctions detected: " + num_conj);
-        temp_chunks.clear();
-        // clearing all the chunks that have nothing 
-        for(Chunk chunk: chunks){
-            if(!chunk.isEmpty()){
-                temp_chunks.add(chunk);
-            }
-        }
-        chunks.clear();        
-        // Printing Conj Chunks
-        System.out.println("************Printing Conj Splits*****************");
-        for(Chunk chunk: temp_chunks){
-            System.out.println(chunk.getText());
-        }
-        System.out.println("************End Conj Splits*****************");
-        // clear the temp arraylist to use again for prepositions
-
-        // ---- Prepositions
-        // temp_chunks -> chunks
-        int temp_prep_pos = 0;
+		
+	}
+	
+	private void chunkByPreposition(ArrayList<Chunk> chunks){
+		ArrayList<Chunk> temp_chunks = new ArrayList<Chunk>();
+		for(Chunk ch: chunks){
+			temp_chunks.add(ch);
+		}
+		chunks.clear();
+		
+    	int temp_prep_pos = 0;
         int prep_pos = 0;
         for(Chunk chunk:temp_chunks){
             String chunk_text = chunk.getText();
@@ -458,13 +318,6 @@ public class Sentence {
                 prep_pos = chunk_text.indexOf(" " + word + " ") + 1;
                 temp_prep_pos = 0;
                 if(prepositions.contains(word)){ 
-
-                    //System.out.println(word);
-                    //System.out.println(prep_pos);
-                    /// NEEDS RETYPING
-
-                    // gets the new conjunction
-
                     if(prep_pos == 0){
                         // if there is another instance of that word, split it there
                         temp_prep_pos = (chunk_text.substring(word.length() + 1).indexOf(word));
@@ -473,13 +326,9 @@ public class Sentence {
                         (chunk_text.charAt(temp_prep_pos + word.length()) == ' ')){
                             prep_pos = temp_prep_pos;
                             chunks.add(new Chunk(chunk_text.substring(0, prep_pos)));
-
                             //System.out.println(chunk_text.substring(0, prep_pos));
-
                             chunk_text = chunk_text.substring(prep_pos);
-
                         }
-                        
                     }
                     else if((prep_pos > 0) &&
                     (chunk_text.indexOf(" " + word + " ") > -1)){
@@ -487,76 +336,75 @@ public class Sentence {
                         chunks.add(new Chunk(chunk_text.substring(0, prep_pos)));
                         chunk_text = chunk_text.substring(prep_pos);
                     }
-
                 }
             }
             chunks.add(new Chunk(chunk_text));
             //System.out.println(chunk_text);
         }
+	}
 
-        // get rid of old chunks and update
-        temp_chunks.clear();
-        for(Chunk chunk: chunks){
-            if(!chunk.isEmpty()){
-                temp_chunks.add(chunk);
-            }
-        }
-
-        // Testing Chunks
-        System.out.println();
-        System.out.println("----Printing Prep Splits----");
-
-        for(Chunk chunk:temp_chunks){
-            System.out.println(chunk.getText());
-            //System.out.println(chunk.getText().length());
-        }
-
-        //System.out.print(prepositions.contains("on"));
-
-        System.out.println("----Printing Ending----");
-        System.out.println();
-        
-    }
-    
-
-    private Chunk createQuoteChunk(String temp, int quote) {
+	private Chunk createQuoteChunk(String temp, int quote) {
     	
     	if(temp.charAt(quote - 1) == ' '){
+    		//System.out.println("HELLO");
+    		System.out.println(temp.substring(0, quote));
+    		System.out.println(quote);
             return new Chunk(temp.substring(0, quote));
         }
         else{
+        	System.out.println(temp.substring(0, quote + 2));
+        	System.out.println(quote);
             return new Chunk(temp.substring(0, quote + 2));
         }
 	}
 
 	private Chunk createSpecialLeftChunk(String temp, int left_symbol) {
+		System.out.println(temp.substring(0, left_symbol));
+		System.out.println(left_symbol);
 		return new Chunk(temp.substring(0, left_symbol));
         //temp = temp.substring(temp.indexOf("("));
-		
 	}
 
-	private Chunk createNormalChunk(String temp, int symbol) {
+	private Chunk createNormalChunk(String temp, int symbol) {	
+		System.out.println(temp);
+		System.out.println(symbol);
+		System.out.println(temp.substring(0, symbol + 2));
 		return new Chunk(temp.substring(0, symbol + 2));
         //temp = temp.substring(temp.indexOf(":") + 1);
 	}
 
 	private Chunk createCommaChunk(String temp, int comma) {
 		if(temp.charAt(comma + 1) == ' '){
+			System.out.println(temp.substring(0, comma + 2));
+			System.out.println(comma);
             return new Chunk(temp.substring(0, comma + 2));
             //temp = temp.substring(temp.indexOf(",") + 1);
         }
-        else if((temp.charAt(comma + 1) == '"') || ((int)temp.charAt(comma + 1) == RIGHT_SPECIAL_DOUBLEQUOTE)){
+        else if((temp.charAt(comma + 1) == '"') || ((int)temp.charAt(comma + 1) == Punctuation.RIGHT_QUOTE.character())){
+        	System.out.println(temp.substring(0, comma + 3));
+        	System.out.println(comma);
             return new Chunk(temp.substring(0, comma + 3));
             //temp = temp.substring(temp.indexOf(",") + 2);
         }
 		return null;
 		
+
 	}
 
-	private Punctuation findEarlistPunctuation(int comma, int colon, int semi_colon,
+	public Punctuation findEarlistPunctuation(int comma, int colon, int semi_colon,
 			int dash, int left_parenth, int right_parenth, int quote,
 			int left_quote, int right_quote) {
     	
+		System.out.println("comma: " + comma);
+		System.out.println("colon: " + colon);
+		System.out.println("semi: " + semi_colon);
+		System.out.println("dash: " + dash);
+		System.out.println("left_p: " + left_parenth);
+		System.out.println("right_p: " + right_parenth);
+		System.out.println("quote: " + quote);
+		System.out.println("left_q: " + left_quote);
+		System.out.println("right_q: " + right_quote);
+		
 		HashMap<String, Integer> map = new HashMap<String, Integer>();
 		map.put("comma", comma);
 		map.put("colon", colon);
@@ -565,6 +413,11 @@ public class Sentence {
 		map.put("right_parenth", right_parenth);
 		map.put("right_quote", right_quote);
 		
+		
+		for(String str: map.keySet()){
+			System.out.println(str);
+		}
+
 		if(left_parenth > 0){
 			map.put("left_parenth", left_parenth);
 		}
@@ -574,24 +427,30 @@ public class Sentence {
 		if(left_quote > 0){
 			map.put("left_quote", left_quote);
 		}
-		
+
 		String smallest = null;
 		int num = 100000;
 		for(String key: map.keySet()){
 			int value = map.get(key);
-			if(value < num ||
+			if(value < num &&
 					value != -1){
 				smallest = key;
 				num =  value;
 			}
 		}
-		
-		return getPunctuation(smallest);
-		
+		System.out.println("smallest: " + smallest);
 		
 		
-		
-		
+		if(smallest == null){
+			return null;
+		}
+		else{
+			return getPunctuation(smallest);
+		}
+
+
+
+
 	}
 
 	private Punctuation getPunctuation(String smallest) {
@@ -623,9 +482,9 @@ public class Sentence {
 		else if(smallest.equals("left_quote")){
 			punct = Punctuation.LEFT_QUOTE;
 		}
-		
+
 		return punct;
-		
+
 	}
 
 	public String getSentence(){
@@ -877,6 +736,11 @@ public class Sentence {
         }
         return true;
     }
+    
+    public void printChunks(){
+    	for(Chunk chunk: chunks){
+    		System.out.println(chunk.getText());
+    	}
+    }
 
 }
-
