@@ -22,10 +22,7 @@ import java.io.IOException;
 
 public class Reader
 {   
-	
-	
-	
-	
+
 	private static int RIGHT_SPECIAL_DOUBLEQUOTE = 8221;
     private String file;
     private Scanner in;
@@ -70,17 +67,17 @@ public class Reader
         while(in.hasNextLine()){
             text = in.nextLine();
             file += (text + " ");
-            //System.out.println(text);
+            
         }
 
-        System.out.println(honorifics.contains("Mr."));
-        //System.out.println(file);
+        
         createSentences();
 
         // put all the chunks created into chunks arrayList
         storyToChunks();
         trimSpaces();
-        
+        System.out.println("-----------------");
+        printStoryInChunks();
         
         
 
@@ -109,10 +106,6 @@ public class Reader
     }
     
     
-    public void createSentences1(){
-        
-        
-    }
     
     
     
@@ -139,7 +132,7 @@ public class Reader
             exclamation = file.indexOf("!");
             question_mark = file.indexOf("?");
             period = file.indexOf(".");
-            System.out.println("HIHI");
+            
             // get the correct index of the period (can be part of a honorific)
             // while text before period is a honorific, find another period.
 
@@ -297,4 +290,3 @@ public class Reader
         }
     }
 }
-
