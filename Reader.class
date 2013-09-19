@@ -1,5 +1,6 @@
 package com.speedreader;
 
+import java.util.HashMap;
 import java.util.Scanner;
 import java.util.ArrayList;
 import java.util.Set;
@@ -25,12 +26,15 @@ public class Reader
 
 	private static int RIGHT_SPECIAL_DOUBLEQUOTE = 8221;
     private String file;
+    private String txt;
+    private String filename;
     private Scanner in;
     private ArrayList<Sentence> sentences; 
     private ArrayList<Chunk> chunks;
     private Set<String> honorifics;
     private int[] length_hist;
     private int desired_length;
+    
 
     /**
      * Read in a textfile
@@ -43,9 +47,9 @@ public class Reader
      * Num Words in Chunk: 2 - 4
      * 
      */
-    public Reader(int desired_length, String filename)
-    {
+    public Reader(int desired_length, String filename){
         // 1. read in file  
+    	this.filename = filename;
         file = "";
         sentences = new ArrayList<Sentence>();
         chunks = new ArrayList<Chunk>();
@@ -70,7 +74,7 @@ public class Reader
             
         }
 
-        
+        txt = file;
         createSentences();
 
         // put all the chunks created into chunks arrayList
@@ -78,6 +82,8 @@ public class Reader
         trimSpaces();
         System.out.println("-----------------");
         printStoryInChunks();
+        
+        
         
         
 
@@ -115,116 +121,114 @@ public class Reader
      *  - divides the file into sentences 
      *  - sentences are broken up by '!' , '.', '?'
      */
-    public void createSentences()
-    {
+    public void createSentences(){
         // ----- Main Sentence Separator
         // - '.' , '!', '?'
         System.out.println(file);
-        int exclamation = 0;
-        int question_mark = 0;
-        int period = 0;
-        String text_before_period = "";
-        //System.out.println(file.indexOf("!"));
-        //System.out.println(file.indexOf("."));
-        //System.out.println(file.indexOf("?"));
+        int exclamationIndex = file.indexOf(HardBreak.EXCLAMATION.character());
+        int questionMarkIndex = file.indexOf(HardBreak.QUESTION_MARK.character());
+        int periodIndex = file.indexOf(HardBreak.PERIOD.character());
+        int semiColonIndex = file.indexOf(HardBreak.SEMICOLON.character());
+        int rightParenthIndex = file.indexOf(HardBreak.RIGHT_PARENTH.character());
+        int rightQuoteIndex = file.indexOf(HardBreak.RIGHT_QUOTE.character());
         
-        while(file.indexOf(".") > -1 || file.indexOf("?") > -1 || file.indexOf("!") > -1){
-            exclamation = file.indexOf("!");
-            question_mark = file.indexOf("?");
-            period = file.indexOf(".");
+        
+        String text_before_period = "";
+        
+        
+        while(periodIndex > -1 || questionMarkIndex > -1 || exclamationIndex > -1){
+            
             
             // get the correct index of the period (can be part of a honorific)
             // while text before period is a honorific, find another period.
 
             // getting text_before_period
-            int add = 0;
-            System.out.println(text_before_period);
-            text_before_period = file.substring(period - 3, period + 1);
+            //int add = 0;
             
-            if(text_before_period.indexOf(" ") > -1){
-                int space = text_before_period.indexOf(" ");
-                text_before_period = text_before_period.substring(space + 1);
-                System.out.println(text_before_period);
-                add += period;
+            // honorific is at 0
+            if(periodIndex <= 4){
+            	text_before_period = file.substring(0, periodIndex + 1); 
+            	if(text_before_period.indexOf(" ") > -1){
+            		int space = text_before_period.indexOf(" ");
+            		text_before_period = text_before_period.substring(0, space);
+            		
+            	}
             }
-
+            else{
+            text_before_period = file.substring(periodIndex - 3, periodIndex + 1);
+            	if(text_before_period.indexOf(" ") > -1){
+            		int space = text_before_period.indexOf(" ");
+            		text_before_period = text_before_period.substring(space + 1);                
+            		//add += periodIndex;
+            	}
+            }
+            
             // checking if honorific
             while(honorifics.contains(text_before_period)){
-                String temp = file.substring(period + 1);
-                System.out.println(temp);
-                period += temp.indexOf(".") + 1;
-                System.out.println(file.substring(period - 1, period + 1));
-                
-                // getting next text_before_period
-                text_before_period = file.substring(period - 4, period + 1);
-                System.out.println(period);
+                String temp = file.substring(periodIndex + 1);
+                periodIndex += temp.indexOf(".") + 1;
+                text_before_period = file.substring(periodIndex - 4, periodIndex + 1);
                 if(text_before_period.indexOf(" ") > -1){
                     int space = text_before_period.indexOf(" ");
                     text_before_period = text_before_period.substring(space + 1);
                 }
-                System.out.println("Text Before Period: " + text_before_period);
-                System.out.println(honorifics.contains(text_before_period));
+                
                 
             }
             
-            System.out.println(period);
-            System.out.println(question_mark);
-            System.out.println(exclamation);
-            System.out.println(file.substring(period - 1, period + 1));
             
-            if((period < question_mark || question_mark == -1) && 
-            (period < exclamation || exclamation == -1) && 
-            // '”' has ascii value of 8221
-            ((file.charAt(period + 1) == ' ') || ((int) file.charAt(period + 1) == RIGHT_SPECIAL_DOUBLEQUOTE) ||
-                (file.charAt(period + 1) == '"')) &&
-            period != -1){
-                System.out.println("...................");
-                if(file.charAt(period + 1) == ' '){
-                    sentences.add(new Sentence(file.substring(0, period + 2), desired_length));
-                    file = file.substring(period + 2);
-                } // period before quotation
-                // include quote into sentence. 
-                else if((int)file.charAt(period + 1) == RIGHT_SPECIAL_DOUBLEQUOTE || file.charAt(period + 1) == '"'){
-                    sentences.add(new Sentence(file.substring(0, period + 3), desired_length));
-                    file = file.substring(period + 3);
-
-                }
-            }    //question mark
-            else if((question_mark < period || period == -1) && 
-            (question_mark < exclamation || exclamation == -1) && 
-            ((file.charAt(question_mark + 1) == ' ') || ((int)file.charAt(question_mark + 1) == RIGHT_SPECIAL_DOUBLEQUOTE) ||
-                (file.charAt(question_mark + 1) == '"')) &&
-            question_mark != -1){
-                //System.out.println("???????????????????");
-                if(file.charAt(question_mark + 1) == ' '){
-                    sentences.add(new Sentence(file.substring(0, file.indexOf("?") + 2), desired_length));
-                    file = file.substring(file.indexOf("?") + 1);
-                } // question mark before quotation
-                // include quote into sentence. 
-                else if((int)file.charAt(question_mark + 1) == RIGHT_SPECIAL_DOUBLEQUOTE || file.charAt(question_mark + 1) == '"'){
-                    sentences.add(new Sentence(file.substring(0, file.indexOf("?") + 3), desired_length));
-                    file = file.substring(file.indexOf("?") + 2);
-
-                }
+            
+            HardBreak hb = findEarliestHardBreak(periodIndex, questionMarkIndex, exclamationIndex, 
+            									 semiColonIndex, rightParenthIndex, rightQuoteIndex);
+            
+            
+            if(hb == null){
+            	break;
             }
-            else if((exclamation < period || period == -1) && 
-            (exclamation < question_mark || question_mark == -1)&& 
-            ((file.charAt(exclamation + 1) == ' ') || ((int)file.charAt(exclamation + 1) == RIGHT_SPECIAL_DOUBLEQUOTE) ||
-                (file.charAt(exclamation + 1) == '"')) &&
-            exclamation != -1){
-                //System.out.println("!!!!!!!!!!!!!!!!!!!!");
-                if(file.charAt(exclamation + 1) == ' '){
-                    sentences.add(new Sentence(file.substring(0, file.indexOf("!") + 2), desired_length));
-                    file = file.substring(file.indexOf("!") + 1);
-                } // period before quotation
-                // include quote into sentence. 
-                else if((int)file.charAt(exclamation + 1) == RIGHT_SPECIAL_DOUBLEQUOTE || file.charAt(exclamation + 1) == '"'){
-                    sentences.add(new Sentence(file.substring(0, file.indexOf("!") + 3), desired_length));
-                    file = file.substring(file.indexOf("!") + 2);
-
-                }
+            else{
+            	switch (hb) {
+				case PERIOD:{
+					Sentence sent = createHardestSentence(file, periodIndex);
+					file = file.substring(sent.getLength());
+					sentences.add(sent);
+					break;
+				}
+				case QUESTION_MARK:{
+					Sentence sent = createHardestSentence(file, questionMarkIndex);
+					file = file.substring(sent.getLength());
+					sentences.add(sent);
+					break;
+				}
+				case EXCLAMATION:{
+					Sentence sent = createHardestSentence(file, exclamationIndex);
+					file = file.substring(sent.getLength());
+					sentences.add(sent);
+					break;
+				}
+				case SEMICOLON:{
+					Sentence sent = createNormalChunk(file, semiColonIndex);
+					file = file.substring(sent.getLength());
+					sentences.add(sent);
+					break;
+				}
+				case RIGHT_PARENTH:{
+					Sentence sent = createNormalChunk(file, rightParenthIndex);
+					file = file.substring(sent.getLength());
+					sentences.add(sent);
+					break;
+				}
+				case RIGHT_QUOTE:{
+					Sentence sent = createNormalChunk(file, rightQuoteIndex);
+					file = file.substring(sent.getLength());
+					sentences.add(sent);
+					break;
+				}
+				default:{
+					System.out.println("DID NOTHING");
+					break;
+				}
             }
-            //System.out.println("BUG");
+                
         }
 
         
@@ -233,9 +237,89 @@ public class Reader
         System.out.println(sentences.get(i).getSentence());
         }
         
+        exclamationIndex = file.indexOf(HardBreak.EXCLAMATION.character());
+        questionMarkIndex = file.indexOf(HardBreak.QUESTION_MARK.character());
+        periodIndex = file.indexOf(HardBreak.PERIOD.character());
+        semiColonIndex = file.indexOf(HardBreak.SEMICOLON.character());
+        rightParenthIndex = file.indexOf(HardBreak.RIGHT_PARENTH.character());
+        rightQuoteIndex = file.indexOf(HardBreak.RIGHT_QUOTE.character());
     }
+}
     
-    /**
+    private Sentence createHardestSentence(String file, int symbol) {
+    	if(file.charAt(symbol + 1) == ' '){
+            return new Sentence(file.substring(0, symbol + 2), desired_length);
+        }
+        else if((int)file.charAt(symbol + 1) == RIGHT_SPECIAL_DOUBLEQUOTE || file.charAt(symbol + 1) == '"'){
+            return new Sentence(file.substring(0, symbol + 3), desired_length);
+        }
+		return null;
+	}
+    
+    private Sentence createNormalChunk(String temp, int symbol) {	
+		System.out.println(temp);
+		System.out.println(symbol);
+		System.out.println(temp.substring(0, symbol + 2));
+		return new Sentence(temp.substring(0, symbol + 2), desired_length);
+        //temp = temp.substring(temp.indexOf(":") + 1);
+	}
+
+	private HardBreak findEarliestHardBreak(int periodIndex,
+			int questionMarkIndex, int exclamationIndex, int semiColonIndex,
+			int rightParenthIndex, int rightQuoteIndex) {
+		
+    	HashMap<String, Integer> map = new HashMap<String, Integer>();
+    	map.put("period", periodIndex);
+    	map.put("question_mark", questionMarkIndex);
+    	map.put("exclamation", exclamationIndex);
+    	map.put("semi_colon", semiColonIndex);
+    	map.put("right_parenth", rightParenthIndex);
+    	map.put("right_quote", rightQuoteIndex);
+    	
+    	String smallest = null;
+    	int num = 1000000;
+    	
+    	for(String key: map.keySet()){
+    		int value = map.get(key);
+    		if(value < num && value != -1){
+    			smallest = key;
+    			num = value;
+    		}
+    	}
+    	
+    	if(smallest == null){
+    		return null;
+    	}
+    	else{
+    		return getHardBreak(smallest);
+    	}
+		
+	}
+
+	private HardBreak getHardBreak(String smallest) {
+		HardBreak hb = null;
+		if(smallest.equals("period")){
+			hb = HardBreak.PERIOD;
+		}
+		else if(smallest.equals("question_mark")){
+			hb = HardBreak.QUESTION_MARK;
+		}
+		else if(smallest.equals("exclamation")){
+			hb = HardBreak.EXCLAMATION;
+		}
+		else if(smallest.equals("semi_colon")){
+			hb = HardBreak.SEMICOLON;
+		}
+		else if(smallest.equals("right_parenth")){
+			hb = HardBreak.RIGHT_PARENTH;
+		}
+		else if(smallest.equals("right_quote")){
+			hb = HardBreak.RIGHT_QUOTE;
+		}
+		return hb;
+	}
+
+	/**
      *  updates the chunk arrayList to contain all the chunks of all the sentences
      */
     public void storyToChunks(){
@@ -246,9 +330,7 @@ public class Reader
         }
     }
 
-    /**
-     *  print function 
-     */
+    
     public void printStoryInChunks(){
         for(Chunk chunk:chunks){
             System.out.println(chunk.getText());
@@ -266,11 +348,6 @@ public class Reader
     }
 
     
-
-    /**
-     *  Take out extra spaces (double spaces '  ')
-     *  
-     */
     public void trimSpaces(){
         ArrayList<Chunk> temp_chunks = new ArrayList<Chunk>();
         String text = "";
@@ -288,5 +365,37 @@ public class Reader
         for(Chunk chunk: temp_chunks){
             chunks.add(chunk);
         }
+    }
+    
+    public String getText(){
+    	return txt;
+    }
+    
+    public String getOriginalText(){
+    	String text = "";
+		
+		try{
+            in = new Scanner(new File(filename));
+        }catch(IOException i){
+            System.out.println("Error: " + i.getMessage());
+        }
+        while(in.hasNextLine()){
+        	String line = in.nextLine();
+            if(line.equals("")){
+            	text += line + "\n\n";
+            }
+            else{
+            	text += line + " ";
+            }
+        }
+		return reformatText(text);
+    }
+    
+    private String reformatText(String text){
+    	return text;
+    }
+    
+    public ArrayList<Chunk> getChunks(){
+    	return chunks;
     }
 }
