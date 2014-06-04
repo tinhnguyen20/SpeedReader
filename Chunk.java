@@ -1,4 +1,4 @@
-package com.speedreader;
+package com.example.highlighter;
 
 import java.util.ArrayList;
 /**
@@ -10,19 +10,18 @@ public class Chunk
     private String text;
     private String[] words;
     private ArrayList<Integer> space_positions;
-    private boolean inRange;
+    
+    
     /**
      * Creates a chunk of words 
      */
-    public Chunk(String text)
-    {
-        this.text = text;
-        words = new String[text.split(" ").length];
-        words = text.split(" ");
-        space_positions = new ArrayList<Integer>();
-        inRange = false;
+    public Chunk(String text){
+        this.text = text.trim();
+        words = new String[this.text.split(" ").length];
+        words = this.text.split(" ");
+        space_positions = new ArrayList<Integer>();        
         
-        String temp_text = text.trim();
+        String temp_text = this.text;
         int add = 0;
         int space = 0;
         while(temp_text.indexOf(" ") > -1){
